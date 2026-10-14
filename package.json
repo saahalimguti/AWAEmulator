@@ -1,0 +1,9 @@
+{
+  "name": "awa-emulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MuMuPlayer Pro - Zero Lag Standalone Web App",
+  "scripts": {
+    "build": "echo 'AWAEmulator ready'"
+  }
+}

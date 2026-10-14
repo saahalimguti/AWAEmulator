@@ -57,17 +57,10 @@ class MuMuEmulatorCore {
     this.streamUrl = `${this.bridge.baseUrl}/api/stream.mjpeg?t=${Date.now()}`;
     this.streamImg.src = this.streamUrl;
 
-    this.streamImg.onload = () => {
-      this.isBooting = false;
-      this.isConnected = true;
-      if (this.canvas) this.canvas.style.display = 'none';
-      this.streamImg.style.display = 'block';
-    };
-
+    // MJPEG multipart stream never triggers onload in browsers, switch display on connected event
     this.streamImg.onerror = () => {
-      // Stream error / reconnecting
       setTimeout(() => {
-        if (this.streamImg) {
+        if (this.streamImg && this.isConnected) {
           this.streamImg.src = `${this.bridge.baseUrl}/api/stream.mjpeg?t=${Date.now()}`;
         }
       }, 1500);
@@ -80,7 +73,9 @@ class MuMuEmulatorCore {
     if (this.canvas) this.canvas.style.display = 'none';
     if (this.streamImg) {
       this.streamImg.style.display = 'block';
-      this.streamImg.src = `${this.bridge.baseUrl}/api/stream.mjpeg?t=${Date.now()}`;
+      if (!this.streamImg.src || !this.streamImg.src.includes('stream.mjpeg')) {
+        this.streamImg.src = `${this.bridge.baseUrl}/api/stream.mjpeg?t=${Date.now()}`;
+      }
     }
   }
 
@@ -102,6 +97,9 @@ class MuMuEmulatorCore {
     if (this.canvas) {
       this.canvas.style.display = 'block';
       this.renderBootScreen();
+    }
+    if (this.streamImg) {
+      this.streamImg.style.display = 'none';
     }
   }
 

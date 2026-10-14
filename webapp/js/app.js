@@ -39,12 +39,57 @@ function initApp() {
   setInterval(updateAndroidClock, 1000);
   updateAndroidClock();
 
-  // Cloud deployment notice (Vercel)
-  if (window.location.hostname.includes('vercel.app')) {
+  // Cloud deployment notice (Vercel / HTTPS)
+  if (window.location.protocol === 'https:') {
+    setTimeout(showHttpsNoticeBanner, 1000);
+  } else if (window.location.hostname.includes('vercel.app')) {
     setTimeout(() => {
       showToast('🌐 AWAEmulator Cloud Interface: Menyambung ke Enjin MuMu tempatan (http://localhost:8088)', 8000);
     }, 1200);
   }
+}
+
+function showHttpsNoticeBanner() {
+  if (document.getElementById('https-notice-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'https-notice-banner';
+  banner.style.cssText = `
+    position: fixed;
+    top: 42px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    background: rgba(13, 19, 33, 0.96);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.2);
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    max-width: 720px;
+    width: 90%;
+    backdrop-filter: blur(12px);
+    font-family: inherit;
+  `;
+  banner.innerHTML = `
+    <div style="font-size: 24px; flex-shrink: 0;">⚡</div>
+    <div style="flex: 1;">
+      <div style="font-weight: 700; color: #00f0ff; font-size: 13px; margin-bottom: 2px;">
+        MuMu Hypervisor Berjalan di MacBook Anda (Headless Engine)
+      </div>
+      <div style="color: #94a3b8; font-size: 11px; line-height: 1.4;">
+        Pelayar web menyekat sambungan HTTP tempatan dari laman HTTPS awam (Mixed Content Policy). Untuk sambungan terus <strong>Zero-Lag 60 FPS Buttery Smooth</strong>, buka konsol pada pelayar Mac anda:
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; flex-shrink: 0;">
+      <a href="http://localhost:8088" style="background: linear-gradient(135deg, #00f0ff, #0070f3); color: #000; font-weight: 700; font-size: 11px; padding: 7px 14px; border-radius: 6px; text-decoration: none; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(0,240,255,0.3);">
+        Buka http://localhost:8088 &rarr;
+      </a>
+      <button onclick="document.getElementById('https-notice-banner').remove()" style="background: rgba(255,255,255,0.1); border: none; color: #cbd5e1; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 11px;">✕</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
 }
 
 function handleBridgeStatus(info) {
