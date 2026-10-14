@@ -5,7 +5,19 @@
 
 class MuMuBridgeClient {
   constructor(baseUrl = '') {
-    this.baseUrl = baseUrl;
+    if (!baseUrl) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const customBridge = urlParams.get('bridge') || localStorage.getItem('mumu_bridge_url');
+      if (customBridge) {
+        baseUrl = customBridge;
+      } else if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        // When deployed on Vercel or external host, auto-target local Mac daemon
+        baseUrl = 'http://localhost:8088';
+      } else {
+        baseUrl = '';
+      }
+    }
+    this.baseUrl = baseUrl.replace(/\/$/, '');
     this.isConnected = false;
     this.deviceInfo = null;
     this.latencyMs = 0;

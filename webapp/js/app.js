@@ -38,6 +38,13 @@ function initApp() {
   // Android Clock Tick
   setInterval(updateAndroidClock, 1000);
   updateAndroidClock();
+
+  // Cloud deployment notice (Vercel)
+  if (window.location.hostname.includes('vercel.app')) {
+    setTimeout(() => {
+      showToast('🌐 AWAEmulator Cloud Interface: Menyambung ke Enjin MuMu tempatan (http://localhost:8088)', 8000);
+    }, 1200);
+  }
 }
 
 function handleBridgeStatus(info) {

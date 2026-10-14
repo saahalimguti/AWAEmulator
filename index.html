@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=/webapp/">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MuMuPlayer Pro - AWAEmulator</title>
+  <script>
+    // Serta-merta alihkan ke paparan webapp jika dibuka secara terus
+    if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+      window.location.replace('/webapp/' + window.location.search + window.location.hash);
+    }
+  </script>
+</head>
+<body style="background: #090b10; color: #f0f4fc; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+  <div style="text-align: center; max-width: 480px; padding: 24px;">
+    <div style="width: 50px; height: 50px; margin: 0 auto 16px; border: 3px solid #00f0ff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <h2 style="font-weight: 700; margin-bottom: 8px;">AWAEmulator (MuMuPlayer Pro)</h2>
+    <p style="color: #8b9bb4; font-size: 14px; margin-bottom: 20px;">Memuatkan Konsol Web Android 12 ARM64...</p>
+    <a href="/webapp/" style="color: #00f0ff; text-decoration: none; font-size: 13px; border: 1px solid rgba(0,240,255,0.3); padding: 8px 16px; border-radius: 6px;">Buka Terus &rarr;</a>
+  </div>
+  <style>
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</body>
+</html>
