@@ -1,0 +1,24 @@
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.bak
+
+# macOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temp images
+test_*.jpg
+test_*.png
+temp_*.jpg
+
+# Local agent metadata & caches
+.claude/
+.codex/
+.cursor/
+.wolf/
