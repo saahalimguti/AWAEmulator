@@ -298,12 +298,12 @@ body {
   user-drag: none;
   -webkit-user-drag: none;
   background: #000;
-  cursor: crosshair;
+  cursor: default;
   transform: translateZ(0);
   backface-visibility: hidden;
   will-change: contents;
   image-rendering: auto;
-  filter: contrast(1.04) brightness(1.02);
+  filter: none;
   z-index: 1;
 }
 

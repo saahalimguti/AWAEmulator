@@ -11,8 +11,8 @@ class MuMuEmulatorCore {
     this.streamImg = streamImgEl;
     this.bridge = bridgeClient;
 
-    this.androidWidth = 1440;
-    this.androidHeight = 2560;
+    this.androidWidth = 2560;
+    this.androidHeight = 1440;
     this.fps = 60;
     this.isConnected = false;
     this.isBooting = true;
@@ -41,6 +41,10 @@ class MuMuEmulatorCore {
         if (status.width && status.height) {
           this.androidWidth = status.width;
           this.androidHeight = status.height;
+          const viewport = document.getElementById('viewport');
+          if (viewport) {
+            viewport.style.aspectRatio = `${this.androidWidth} / ${this.androidHeight}`;
+          }
         }
         if (status.fps) {
           this.fps = status.fps;

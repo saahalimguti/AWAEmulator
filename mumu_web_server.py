@@ -115,17 +115,39 @@ _cached_surface_id = 396
 _last_surface_check = 0
 _cached_surf = None
 
+def get_active_adb_device():
+    """Auto-detect active ADB port from mumutool or settings"""
+    global DEVICE_ADDR
+    if MUMUTOOL_PATH and os.path.exists(MUMUTOOL_PATH):
+        try:
+            info_raw = subprocess.check_output([MUMUTOOL_PATH, "info", "0"], timeout=2).decode("utf-8", errors="ignore")
+            data = json.loads(info_raw)
+            port = data.get("return", {}).get("adb_port")
+            if port:
+                DEVICE_ADDR = f"127.0.0.1:{port}"
+                return DEVICE_ADDR
+        except Exception:
+            pass
+    return DEVICE_ADDR
+
 def run_adb(args, timeout=12):
     """Execute ADB command on target Android VM and return output"""
-    cmd = [ADB_PATH, "-s", DEVICE_ADDR] + args
+    dev_addr = get_active_adb_device()
+    cmd = [ADB_PATH, "-s", dev_addr] + args
     try:
         p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
-        return p.stdout.decode("utf-8", errors="ignore").strip()
+        out = p.stdout.decode("utf-8", errors="ignore").strip()
+        if not out and p.stderr:
+            err = p.stderr.decode("utf-8", errors="ignore")
+            if "not found" in err or "refused" in err:
+                subprocess.run([ADB_PATH, "connect", dev_addr], timeout=2)
+        return out
     except Exception:
         return ""
 
 def ensure_vm_running():
     """Ensure Android 12 VM is running in headless mode with NO Mac GUI window"""
+    dev_addr = get_active_adb_device()
     if MUMUTOOL_PATH and os.path.exists(MUMUTOOL_PATH):
         try:
             info_raw = subprocess.check_output([MUMUTOOL_PATH, "info", "0"], timeout=6).decode("utf-8", errors="ignore")
@@ -135,12 +157,11 @@ def ensure_vm_running():
                 time.sleep(2)
                 subprocess.Popen([MUMUTOOL_PATH, "hide"])
             else:
-                logger.info("Android VM is active.")
                 subprocess.Popen([MUMUTOOL_PATH, "hide"])
         except Exception as e:
             logger.error(f"Error checking mumutool: {e}")
     try:
-        subprocess.run([ADB_PATH, "connect", DEVICE_ADDR], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
+        subprocess.run([ADB_PATH, "connect", dev_addr], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=4)
     except Exception:
         pass
 
@@ -166,9 +187,9 @@ def generate_fallback_frame(fmt="JPEG"):
 
 def find_hardware_surface_id():
     """Finds the active hardware Metal IOSurface ID of MuMu Android Device (cached for zero lag)"""
-    global _cached_surface_id, _last_surface_check
+    global _cached_surface_id, _last_surface_check, _cached_surf
     now = time.time()
-    if _cached_surface_id and (now - _last_surface_check < 60.0):
+    if _cached_surface_id and (now - _last_surface_check < 10.0):
         return _cached_surface_id
     try:
         out = subprocess.check_output(["ps", "aux"]).decode("utf-8", errors="ignore")
@@ -177,13 +198,16 @@ def find_hardware_surface_id():
                 parts = line.split("--thumbnail_surface")
                 if len(parts) > 1:
                     sid_str = parts[1].strip().split()[0]
-                    _cached_surface_id = int(sid_str)
+                    new_sid = int(sid_str)
+                    if new_sid != _cached_surface_id:
+                        _cached_surface_id = new_sid
+                        _cached_surf = None
                     _last_surface_check = now
                     return _cached_surface_id
     except Exception:
         pass
     _last_surface_check = now
-    return _cached_surface_id or 396
+    return _cached_surface_id or 483
 
 def grab_single_frame():
     """Captures a real-time frame with zero-lag hardware IOSurface or ADB fallback"""
@@ -207,9 +231,16 @@ def grab_single_frame():
                 raw = ctypes.string_at(ptr, bpr * h)
                 iosurface_lib.IOSurfaceUnlock(surf, 1, None)
                 
-                img = Image.frombytes('RGB', (w, h), raw, 'raw', 'BGRX', bpr, 1)
+                # Correct vertical orientation (-1) so image is right-side up
+                img = Image.frombytes('RGB', (w, h), raw, 'raw', 'BGRX', bpr, -1)
+                
+                # High quality smooth upscale to eliminate 'pecah2' pixelation
+                target_w = 1280
+                target_h = int(target_w * (h / w)) if w > 0 else 720
+                img = img.resize((target_w, target_h), Image.Resampling.BILINEAR)
+                
                 bio = io.BytesIO()
-                img.save(bio, format='JPEG', quality=82)
+                img.save(bio, format='JPEG', quality=84)
                 jpeg_bytes = bio.getvalue()
                 
                 with frame_condition:
@@ -345,6 +376,14 @@ class MuMuHandler(SimpleHTTPRequestHandler):
         arg0 = str(args[0]) if args else ""
         if "screen" not in arg0 and "status" not in arg0 and "stream" not in arg0:
             logger.info("%s - %s", self.client_address[0], format % args)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        self.send_header("Access-Control-Max-Age", "86400")
+        self.end_headers()
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
