@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MuMuPlayer Pro - Android 12 (ARM64 Apple Silicon)</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-container" id="app">
+    <!-- macOS Native Style MuMuPlayer Title Bar -->
+    <header class="mumu-titlebar">
+      <div class="mac-controls">
+        <button class="mac-btn close" title="Tutup / Kunci" onclick="powerDevice()"></button>
+        <button class="mac-btn min" title="Minimize / Desktop" onclick="sendNavKey('HOME')"></button>
+        <button class="mac-btn zoom" title="Skrin Penuh (Fullscreen)" onclick="toggleFullscreen()"></button>
+      </div>
+
+      <div class="mumu-window-title">
+        <svg class="mumu-logo-svg" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6zm3 4a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1zm10 0a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1zm-6-2a3 3 0 0 0-3 3v2a3 3 0 0 0 6 0v-2a3 3 0 0 0-3-3z"/></svg>
+        <span class="mumu-title-text">MuMuPlayer Pro</span>
+        <span class="mumu-device-tag">Android 12 (ARM64)</span>
+        <div class="status-dot-mini online" id="status-dot" title="Emulator Berfungsi Lancar"></div>
+      </div>
+
+      <div class="mumu-top-actions">
+        <div class="stat-badge" id="stat-fps">60 FPS</div>
+        <button class="top-tool-btn" title="Pengurus Aplikasi" onclick="openAppsModal()">
+          <svg viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
+        </button>
+        <button class="top-tool-btn" title="Tetapan Resolusi & Sistem" onclick="openSettingsModal()">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+        <button class="top-tool-btn" title="Skrin Penuh (F11)" onclick="toggleFullscreen()">
+          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace (Edge-to-Edge) -->
+    <main class="workspace">
+      <!-- Emulator Display Area -->
+      <section class="emulator-stage" id="stage">
+        <div class="device-chassis borderless" id="device-chassis">
+          
+          <!-- Virtual Android Status Bar -->
+          <div class="android-status-bar">
+            <div class="status-left">
+              <span id="android-clock">12:00</span>
+              <span id="android-model">MuMuPlayer Pro &bull; Android 12</span>
+            </div>
+            <div class="status-right">
+              <svg viewBox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+              <span id="android-battery">100%</span>
+            </div>
+          </div>
+
+          <!-- Screen Viewport Full Screen -->
+          <div class="screen-viewport" id="viewport">
+            <canvas id="mumu-canvas"></canvas>
+            <img id="mumu-stream-img" alt="MuMu Live Stream" src="">
+            <canvas id="keymap-overlay"></canvas>
+
+            <!-- Drag & Drop Overlay Feedback -->
+            <div id="drag-overlay" class="modal-overlay" style="background: rgba(0, 240, 255, 0.2); backdrop-filter: blur(4px);">
+              <div style="text-align: center; color: #fff;">
+                <svg style="width: 64px; height: 64px; fill: var(--accent-cyan);" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                <h2 style="margin-top: 10px; font-weight: 700;">Lepaskan fail .APK di sini</h2>
+                <p style="color: #cbd5e1;">Pemasangan terus ke dalam Emulator Android 12</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Android Navigation Bar -->
+          <div class="android-nav-bar">
+            <button class="nav-btn" title="Back (ESC)" onclick="sendNavKey('BACK')">
+              <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            </button>
+            <button class="nav-btn" title="Home" onclick="sendNavKey('HOME')">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg>
+            </button>
+            <button class="nav-btn" title="Recents / Apps" onclick="sendNavKey('RECENTS')">
+              <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Native MuMu Toolbar (Docked Right Edge) -->
+      <aside class="mumu-sidebar">
+        <button class="tool-btn active" id="btn-tool-keymap" onclick="toggleKeymapOverlay()">
+          <svg viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm8 7H9v-2h6v2zm1-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg>
+          <span class="tooltip">Keymapper WASD / Gamepad</span>
+        </button>
+
+        <button class="tool-btn" id="btn-tool-fpslock" onclick="toggleFpsAimMode()">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="2" x2="12" y2="7" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="2"/><line x1="2" y1="12" x2="7" y2="12" stroke="currentColor" stroke-width="2"/><line x1="17" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/></svg>
+          <span class="tooltip">Tetikus PC Aim Mode (FPS/GTA)</span>
+        </button>
+
+        <button class="tool-btn" onclick="openModal('modal-apk')">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          <span class="tooltip">Pasang APK (Sideload)</span>
+        </button>
+
+        <button class="tool-btn" onclick="openAppsModal()">
+          <svg viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
+          <span class="tooltip">Pengurus Aplikasi (Apps)</span>
+        </button>
+
+        <div class="sidebar-separator"></div>
+
+        <button class="tool-btn" onclick="openTerminalModal()">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-2-1h-6v-2h6v2zm-8.29-3.71L6.41 16 5 14.59l3.29-3.29L5 8l1.41-1.41 4.71 4.71z"/></svg>
+          <span class="tooltip">Terminal ADB Shell</span>
+        </button>
+
+        <button class="tool-btn" onclick="takeScreenshot()">
+          <svg viewBox="0 0 24 24"><path d="M12 15c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm9-8h-3.17L16 4H8L6.17 7H3c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm0 12H3V9h3.83l1.83-3h6.68l1.83 3H21v10z"/></svg>
+          <span class="tooltip">Tangkapan Skrin HD (PNG)</span>
+        </button>
+
+        <button class="tool-btn" onclick="rotateScreen()">
+          <svg viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.53-1.74 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.73-.88-1.6-1.01-2.47zm1.02 5.47l1.41-1.41C7.79 16.32 7.4 15.45 7.26 14.58H5.24c.17 1.39.73 2.73 1.87 3.89zm10.78-7.94l1.41-1.41c-.9-1.16-1.46-2.5-1.63-3.89h-2.02c.14.87.53 1.74 1.02 2.47zm-1.02 5.47l-1.41 1.41c.73.73 1.12 1.6 1.26 2.47h2.02c-.17-1.39-.73-2.73-1.87-3.88zm2.09-2.47h2.02c-.17-1.39-.72-2.73-1.62-3.89l-1.41 1.42c.52.73.88 1.6 1.01 2.47z"/></svg>
+          <span class="tooltip">Putar Orientasi Skrin</span>
+        </button>
+
+        <button class="tool-btn" onclick="sendNavKey('VOLUME_UP')">
+          <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+          <span class="tooltip">Kuatkan Bunyi (Vol +)</span>
+        </button>
+
+        <button class="tool-btn" onclick="sendNavKey('VOLUME_DOWN')">
+          <svg viewBox="0 0 24 24"><path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/></svg>
+          <span class="tooltip">Perlahankan Bunyi (Vol -)</span>
+        </button>
+
+        <div class="sidebar-separator"></div>
+
+        <button class="tool-btn" onclick="openSettingsModal()">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          <span class="tooltip">Tetapan Resolusi & Sistem</span>
+        </button>
+
+        <button class="tool-btn" onclick="toggleFullscreen()">
+          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          <span class="tooltip">Skrin Penuh (Fullscreen)</span>
+        </button>
+
+        <button class="tool-btn" style="color: var(--accent-red);" onclick="powerDevice()">
+          <svg viewBox="0 0 24 24"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></svg>
+          <span class="tooltip">Kunci Skrin / Kuasa</span>
+        </button>
+      </aside>
+    </main>
+
+    <!-- Modal: Pasang APK -->
+    <div class="modal-overlay" id="modal-apk">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h3>
+            <svg style="width: 20px; height: 20px; fill: var(--accent-cyan);" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Pasang Fail APK (Sideloading)
+          </h3>
+          <button class="modal-close-btn" onclick="closeModal('modal-apk')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="apk-dropzone" id="apk-dropzone-inner" onclick="document.getElementById('apk-file-input').click()">
+            <div class="dropzone-icon">
+              <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+            </div>
+            <p class="main-text">Klik atau seret fail .APK ke sini</p>
+            <p class="sub-text">Sokongan APK permainan ARM64 & Android 12</p>
+            <input type="file" id="apk-file-input" accept=".apk" style="display: none;" onchange="handleApkSelected(this)">
+          </div>
+          <div id="apk-status-log" style="margin-top: 15px; font-family: var(--font-mono); font-size: 12px; color: var(--accent-cyan);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Pengurus Aplikasi (Apps) -->
+    <div class="modal-overlay" id="modal-apps">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h3>
+            <svg style="width: 20px; height: 20px; fill: var(--accent-cyan);" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
+            Pengurus Aplikasi Android 12
+          </h3>
+          <button class="modal-close-btn" onclick="closeModal('modal-apps')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <input type="text" id="app-search" placeholder="Cari nama pakej (cth: browser, gta)..." class="setting-input" style="width: 100%; margin-bottom: 12px;" oninput="filterAppsList()">
+          <div id="apps-list-container" style="max-height: 380px; overflow-y: auto;">
+            <div style="color: var(--text-muted); text-align: center; padding: 20px;">Memuatkan senarai aplikasi...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Terminal ADB Shell -->
+    <div class="modal-overlay" id="modal-terminal">
+      <div class="modal-window" style="width: 720px;">
+        <div class="modal-header">
+          <h3>
+            <svg style="width: 20px; height: 20px; fill: var(--accent-cyan);" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-2-1h-6v-2h6v2zm-8.29-3.71L6.41 16 5 14.59l3.29-3.29L5 8l1.41-1.41 4.71 4.71z"/></svg>
+            Konsol Interaktif ADB Shell (Port 26624 / Standalone)
+          </h3>
+          <button class="modal-close-btn" onclick="closeModal('modal-terminal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 12px;">
+          <div class="terminal-container">
+            <div class="terminal-logs" id="terminal-logs">MuMuPlayer Pro Shell Session Initialized.
+Connected to MuMu Android 12 ARM64 Environment.
+Type commands like 'getprop', 'top -n 1', 'pm list packages -3', 'dumpsys battery'.</div>
+            <div class="terminal-input-bar">
+              <span class="prompt">mumu:/ $</span>
+              <input type="text" id="terminal-input" placeholder="Masukkan arahan shell..." onkeydown="handleTerminalKey(event)">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Tetapan Resolusi & Sistem -->
+    <div class="modal-overlay" id="modal-settings">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h3>
+            <svg style="width: 20px; height: 20px; fill: var(--accent-cyan);" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            Pusat Tetapan MuMuPlayer Pro
+          </h3>
+          <button class="modal-close-btn" onclick="closeModal('modal-settings')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="settings-group">
+            <h4>Paparan & Resolusi</h4>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="title">Pratetap Resolusi</span>
+                <span class="desc">Kualiti dan ketajaman skrin Android 12</span>
+              </div>
+              <select class="setting-select" id="select-resolution" onchange="applyResolutionPreset(this.value)">
+                <option value="2560x1440,360">Tablet 2K (2560 &times; 1440 - 360 DPI)</option>
+                <option value="1920x1080,320" selected>Tablet FHD (1920 &times; 1080 - 320 DPI)</option>
+                <option value="1440x2560,480">Telefon 2K (1440 &times; 2560 - 480 DPI)</option>
+                <option value="1080x1920,400">Telefon FHD (1080 &times; 1920 - 400 DPI)</option>
+                <option value="2560x1080,320">Ultra-Wide (2560 &times; 1080 - 320 DPI)</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="title">Mod Paparan Skrin</span>
+                <span class="desc">Isi skrin penuh atau kekalkan nisbah 16:9</span>
+              </div>
+              <select class="setting-select" id="select-display-fit" onchange="setDisplayFitMode(this.value)">
+                <option value="fill" selected>Penuh Skrin Edge-to-Edge (Tanpa Ruang Hitam)</option>
+                <option value="contain">Kekalkan Nisbah 16:9 (Letterbox)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h4>Sistem & Kuasa</h4>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="title">Reboot Android OS</span>
+                <span class="desc">Muat semula sistem Android 12 secara selamat</span>
+              </div>
+              <button class="mode-btn" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); color: var(--accent-orange);" onclick="rebootDevice()">Reboot Android</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+
+  <script src="js/bridge-client.js"></script>
+  <script src="js/emulator-core.js"></script>
+  <script src="js/keymapper.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

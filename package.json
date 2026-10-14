@@ -4,6 +4,6 @@
   "private": true,
   "description": "MuMuPlayer Pro - Zero Lag Standalone Web App",
   "scripts": {
-    "build": "echo 'AWAEmulator ready'"
+    "build": "rm -rf public && mkdir -p public && cp -r webapp/* public/ && cp -r webapp public/webapp"
   }
 }

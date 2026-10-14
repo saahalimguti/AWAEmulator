@@ -1,0 +1,12 @@
+[
+  {
+    "id": "com.ssatv.plus",
+    "name": "SSATV Plus",
+    "package": "com.ssatv.plus",
+    "icon": "/installed_apps/com.ssatv.plus.png",
+    "color": "#e11d48",
+    "badge": "IPTV & Filem",
+    "type": "media",
+    "installedAt": 1728867540
+  }
+]

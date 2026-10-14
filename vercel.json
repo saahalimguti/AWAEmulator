@@ -1,44 +1,4 @@
 {
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/webapp/index.html"
-    },
-    {
-      "source": "/webapp",
-      "destination": "/webapp/index.html"
-    },
-    {
-      "source": "/webapp/",
-      "destination": "/webapp/index.html"
-    },
-    {
-      "source": "/webapp/(.*)",
-      "destination": "/webapp/$1"
-    },
-    {
-      "source": "/css/(.*)",
-      "destination": "/webapp/css/$1"
-    },
-    {
-      "source": "/js/(.*)",
-      "destination": "/webapp/js/$1"
-    },
-    {
-      "source": "/data/(.*)",
-      "destination": "/webapp/data/$1"
-    },
-    {
-      "source": "/installed_apps/(.*)",
-      "destination": "/webapp/installed_apps/$1"
-    },
-    {
-      "source": "/favicon.ico",
-      "destination": "/webapp/favicon.ico"
-    },
-    {
-      "source": "/preview.jpg",
-      "destination": "/webapp/preview.jpg"
-    }
-  ]
+  "outputDirectory": "public",
+  "cleanUrls": true
 }
