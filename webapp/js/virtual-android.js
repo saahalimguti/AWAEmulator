@@ -816,10 +816,7 @@ ${this.executeVirtualShell(cmd)}`;
       case 'uname':
         return 'Linux localhost 5.15.78-android12-9-g8a3b #1 SMP PREEMPT aarch64 Android';
       case 'getprop':
-        return '[ro.product.model]: [Google Pixel 8 Pro]
-[ro.build.version.release]: [12]
-[ro.product.cpu.abilist]: [arm64-v8a]
-[ro.hardware]: [apple_silicon_metal]';
+        return '[ro.product.model]: [Google Pixel 8 Pro]\n[ro.build.version.release]: [12]\n[ro.product.cpu.abilist]: [arm64-v8a]\n[ro.hardware]: [apple_silicon_metal]';
       case 'whoami':
         return 'root';
       case 'date':
@@ -827,13 +824,9 @@ ${this.executeVirtualShell(cmd)}`;
       case 'ls':
         return 'data/  dev/  etc/  init.rc  mnt/  proc/  sdcard/  storage/  system/  vendor/';
       case 'free':
-        return '              total        used        free      shared     buffers
-Mem:        8192000     2412800     5779200           0       64500';
+        return '              total        used        free      shared     buffers\nMem:        8192000     2412800     5779200           0       64500';
       case 'ps':
-        return 'USER      PID  PPID  VSIZE   RSS   WCHAN            PC  NAME
-root        1     0  12480  2800  0000000000  00408104  init
-system    642     1 154200 48200  0000000000  7fa89012  system_server
-u0_a84   1284   642  89400 32100  0000000000  7fa89012  com.google.android.apps.nexuslauncher';
+        return 'USER      PID  PPID  VSIZE   RSS   WCHAN            PC  NAME\nroot        1     0  12480  2800  0000000000  00408104  init\nsystem    642     1 154200 48200  0000000000  7fa89012  system_server\nu0_a84   1284   642  89400 32100  0000000000  7fa89012  com.google.android.apps.nexuslauncher';
       case 'reboot':
         setTimeout(() => this.goHome(), 1000);
         return 'Sistem dimulakan semula...';

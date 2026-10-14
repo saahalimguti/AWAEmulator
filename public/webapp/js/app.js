@@ -11,7 +11,8 @@ let keymapper = null;
 let virtualOS = null;
 let currentApps = [];
 let isAimMode = false;
-let currentEngineMode = 'standalone'; // 'standalone' or 'bridge'
+let currentEngineMode = 'standalone';
+window.currentEngineMode = 'standalone'; // 'standalone' or 'bridge'
 
 document.addEventListener('DOMContentLoaded', () => {
   initApp();
@@ -75,6 +76,7 @@ function initApp() {
 
 function setEngineMode(mode, notify = true) {
   currentEngineMode = mode;
+  window.currentEngineMode = mode;
   const btn = document.getElementById('mode-switcher-btn');
   const vosContainer = document.getElementById('virtual-android-container');
   const canvasEl = document.getElementById('mumu-canvas');
@@ -86,7 +88,7 @@ function setEngineMode(mode, notify = true) {
       btn.textContent = '🖥️ Mac Bridge (HD)';
       btn.classList.add('bridge-mode');
     }
-    if (vosContainer) vosContainer.classList.remove('active');
+    if (vosContainer) { vosContainer.classList.remove('active'); vosContainer.style.display = 'none'; }
     
     if (bridge && bridge.isConnected) {
       if (streamImgEl) {
@@ -110,7 +112,7 @@ function setEngineMode(mode, notify = true) {
       btn.textContent = '⚡ WebOS Standalone';
       btn.classList.remove('bridge-mode');
     }
-    if (vosContainer) vosContainer.classList.add('active');
+    if (vosContainer) { vosContainer.classList.add('active'); vosContainer.style.display = 'block'; }
     if (canvasEl) canvasEl.style.display = 'none';
     if (streamImgEl) streamImgEl.style.display = 'none';
     if (fpsEl) fpsEl.textContent = '60 FPS';

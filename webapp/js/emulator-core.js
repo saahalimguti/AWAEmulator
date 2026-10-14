@@ -97,6 +97,12 @@ class MuMuEmulatorCore {
 
   onDisconnected() {
     this.isConnected = false;
+    if (window.currentEngineMode === 'standalone') {
+      this.isBooting = false;
+      if (this.canvas) this.canvas.style.display = 'none';
+      if (this.streamImg) this.streamImg.style.display = 'none';
+      return;
+    }
     this.isBooting = true;
     if (this.canvas) {
       this.canvas.style.display = 'block';
@@ -108,6 +114,10 @@ class MuMuEmulatorCore {
   }
 
   renderBootScreen() {
+    if (window.currentEngineMode === 'standalone') {
+      if (this.canvas) this.canvas.style.display = 'none';
+      return;
+    }
     if (!this.canvas || !this.ctx) return;
     const ctx = this.ctx;
     const w = this.canvas.width = this.canvas.parentElement.clientWidth || 1280;
