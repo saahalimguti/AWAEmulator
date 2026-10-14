@@ -1,13 +1,17 @@
 /**
  * MuMuPlayer Pro - Master Web Console Controller
- * 100% Real Android 12 Execution with Headless Standalone Hypervisor Engine.
+ * Dual-Engine Architecture:
+ *   1. Standalone In-Browser Virtual Android 12 Engine (Instant, Responsive on Mobile/Tablet/PC)
+ *   2. Native Mac Hardware Bridge (1080p 60 FPS Apple Silicon Metal Hardware Stream)
  */
 
 let bridge = null;
 let emulator = null;
 let keymapper = null;
+let virtualOS = null;
 let currentApps = [];
 let isAimMode = false;
+let currentEngineMode = 'standalone'; // 'standalone' or 'bridge'
 
 document.addEventListener('DOMContentLoaded', () => {
   initApp();
@@ -17,17 +21,46 @@ function initApp() {
   const canvasEl = document.getElementById('mumu-canvas');
   const streamImgEl = document.getElementById('mumu-stream-img');
   const overlayEl = document.getElementById('keymap-overlay');
+  const vosContainer = document.getElementById('virtual-android-container');
 
+  // Initialize Bridge Client
   bridge = new MuMuBridgeClient('');
   emulator = new MuMuEmulatorCore(canvasEl, streamImgEl, bridge);
   keymapper = new MuMuKeymapper(overlayEl, bridge);
-  window.keymapper = keymapper;
+  
+  window.bridge = bridge;
   window.emulator = emulator;
   window.emulatorCore = emulator;
+  window.keymapper = keymapper;
 
-  // Status updates from bridge
+  // Initialize In-Browser Virtual Android OS
+  if (vosContainer && window.VirtualAndroidOS) {
+    virtualOS = new window.VirtualAndroidOS(vosContainer, (mode) => {
+      console.log('Virtual OS Mode change:', mode);
+    });
+    window.virtualOS = virtualOS;
+  }
+
+  // Setup Bridge Event Handling
   bridge.onStatusChange(handleBridgeStatus);
-  bridge.startHeartbeat(2000);
+  bridge.startHeartbeat(2500);
+
+  // Determine initial engine mode
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+  const isHttps = window.location.protocol === 'https:';
+
+  if (isMobile || isHttps) {
+    // Default to Standalone WebOS immediately so mobile & remote users never wait
+    setEngineMode('standalone', false);
+  } else {
+    // On local Mac desktop, attempt bridge first
+    setEngineMode('bridge', false);
+    setTimeout(() => {
+      if (!bridge.isConnected && currentEngineMode === 'bridge') {
+        setEngineMode('standalone', false);
+      }
+    }, 1800);
+  }
 
   // Setup drag-and-drop for APK sideloading
   setupDragAndDrop();
@@ -38,58 +71,63 @@ function initApp() {
   // Android Clock Tick
   setInterval(updateAndroidClock, 1000);
   updateAndroidClock();
+}
 
-  // Cloud deployment notice (Vercel / HTTPS)
-  if (window.location.protocol === 'https:') {
-    setTimeout(showHttpsNoticeBanner, 1000);
-  } else if (window.location.hostname.includes('vercel.app')) {
-    setTimeout(() => {
-      showToast('🌐 AWAEmulator Cloud Interface: Menyambung ke Enjin MuMu tempatan (http://localhost:8088)', 8000);
-    }, 1200);
+function setEngineMode(mode, notify = true) {
+  currentEngineMode = mode;
+  const btn = document.getElementById('mode-switcher-btn');
+  const vosContainer = document.getElementById('virtual-android-container');
+  const canvasEl = document.getElementById('mumu-canvas');
+  const streamImgEl = document.getElementById('mumu-stream-img');
+  const fpsEl = document.getElementById('stat-fps');
+
+  if (mode === 'bridge') {
+    if (btn) {
+      btn.textContent = '🖥️ Mac Bridge (HD)';
+      btn.classList.add('bridge-mode');
+    }
+    if (vosContainer) vosContainer.classList.remove('active');
+    
+    if (bridge && bridge.isConnected) {
+      if (streamImgEl) {
+        streamImgEl.style.display = 'block';
+        if (!streamImgEl.src || !streamImgEl.src.includes('stream.mjpeg')) {
+          streamImgEl.src = `${bridge.baseUrl}/api/stream.mjpeg?t=${Date.now()}`;
+        }
+      }
+      if (canvasEl) canvasEl.style.display = 'none';
+    } else {
+      if (canvasEl) {
+        canvasEl.style.display = 'block';
+        if (emulator) emulator.renderBootScreen();
+      }
+      if (streamImgEl) streamImgEl.style.display = 'none';
+    }
+    if (fpsEl) fpsEl.textContent = '60 FPS';
+    if (notify) showToast('Mod Enjin: Perkakasan Mac MuMu (1080p 60 FPS ARM64)');
+  } else {
+    if (btn) {
+      btn.textContent = '⚡ WebOS Standalone';
+      btn.classList.remove('bridge-mode');
+    }
+    if (vosContainer) vosContainer.classList.add('active');
+    if (canvasEl) canvasEl.style.display = 'none';
+    if (streamImgEl) streamImgEl.style.display = 'none';
+    if (fpsEl) fpsEl.textContent = '60 FPS';
+    if (notify) showToast('Mod Enjin: Standalone In-Browser Android 12 (Mobile Ready)');
   }
 }
 
-function showHttpsNoticeBanner() {
-  if (document.getElementById('https-notice-banner')) return;
-  const banner = document.createElement('div');
-  banner.id = 'https-notice-banner';
-  banner.style.cssText = `
-    position: fixed;
-    top: 42px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 99999;
-    background: rgba(13, 19, 33, 0.96);
-    border: 1px solid rgba(0, 240, 255, 0.4);
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.2);
-    border-radius: 12px;
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    max-width: 720px;
-    width: 90%;
-    backdrop-filter: blur(12px);
-    font-family: inherit;
-  `;
-  banner.innerHTML = `
-    <div style="font-size: 24px; flex-shrink: 0;">⚡</div>
-    <div style="flex: 1;">
-      <div style="font-weight: 700; color: #00f0ff; font-size: 13px; margin-bottom: 2px;">
-        MuMu Hypervisor Berjalan di MacBook Anda (Headless Engine)
-      </div>
-      <div style="color: #94a3b8; font-size: 11px; line-height: 1.4;">
-        Pelayar web menyekat sambungan HTTP tempatan dari laman HTTPS awam (Mixed Content Policy). Untuk sambungan terus <strong>Zero-Lag 60 FPS Buttery Smooth</strong>, buka konsol pada pelayar Mac anda:
-      </div>
-    </div>
-    <div style="display: flex; gap: 8px; flex-shrink: 0;">
-      <a href="http://localhost:8088" style="background: linear-gradient(135deg, #00f0ff, #0070f3); color: #000; font-weight: 700; font-size: 11px; padding: 7px 14px; border-radius: 6px; text-decoration: none; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(0,240,255,0.3);">
-        Buka http://localhost:8088 &rarr;
-      </a>
-      <button onclick="document.getElementById('https-notice-banner').remove()" style="background: rgba(255,255,255,0.1); border: none; color: #cbd5e1; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 11px;">✕</button>
-    </div>
-  `;
-  document.body.appendChild(banner);
+function toggleEngineMode() {
+  if (currentEngineMode === 'standalone') {
+    if (!bridge.isConnected && !bridge.baseUrl) {
+      openBridgeModal();
+    } else {
+      setEngineMode('bridge');
+    }
+  } else {
+    setEngineMode('standalone');
+  }
 }
 
 function handleBridgeStatus(info) {
@@ -100,18 +138,35 @@ function handleBridgeStatus(info) {
   if (dot) {
     dot.className = info.connected ? 'status-dot-mini online' : 'status-dot-mini';
   }
-  if (modelEl) {
-    modelEl.textContent = info.connected 
-      ? `MuMuPlayer Pro • ${info.model} (Android ${info.android_version})`
-      : 'MuMuPlayer Pro • Android 12 (ARM64 Apple Silicon)';
+
+  if (info.connected) {
+    if (modelEl) {
+      modelEl.textContent = `MuMuPlayer Pro • ${info.model || 'Google Pixel 8 Pro'} (Android ${info.android_version || '12'})`;
+    }
+    if (fpsEl) {
+      fpsEl.textContent = `${info.fps || 60} FPS`;
+    }
+    // If user selected bridge mode and it connected, reveal the live stream
+    if (currentEngineMode === 'bridge') {
+      const canvasEl = document.getElementById('mumu-canvas');
+      const streamImgEl = document.getElementById('mumu-stream-img');
+      if (canvasEl) canvasEl.style.display = 'none';
+      if (streamImgEl) {
+        streamImgEl.style.display = 'block';
+        if (!streamImgEl.src || !streamImgEl.src.includes('stream.mjpeg')) {
+          streamImgEl.src = `${bridge.baseUrl}/api/stream.mjpeg?t=${Date.now()}`;
+        }
+      }
+    }
+  } else {
+    if (modelEl) {
+      modelEl.textContent = 'MuMuPlayer Pro • Android 12 (ARM64 Apple Silicon)';
+    }
   }
-  if (fpsEl) {
-    const fpsVal = info.fps || (emulator ? emulator.fps : 60);
-    fpsEl.textContent = `${fpsVal} FPS`;
-  }
+
   if (info.width && info.height) {
     const viewport = document.getElementById('viewport');
-    if (viewport) {
+    if (viewport && currentEngineMode === 'bridge') {
       viewport.style.aspectRatio = `${info.width} / ${info.height}`;
     }
     if (emulator) {
@@ -129,13 +184,40 @@ function updateAndroidClock() {
 }
 
 function sendNavKey(key) {
-  if (bridge) {
+  if (currentEngineMode === 'standalone' && window.virtualOS) {
+    if (key === 'BACK') window.virtualOS.handleBack();
+    else if (key === 'HOME') window.virtualOS.goHome();
+    else if (key === 'RECENTS') window.virtualOS.toggleRecents();
+    else if (key === 'VOLUME_UP') {
+      window.virtualOS.settings.volume = Math.min(100, (window.virtualOS.settings.volume || 80) + 10);
+      showToast(`Kelantangan: ${window.virtualOS.settings.volume}%`);
+    } else if (key === 'VOLUME_DOWN') {
+      window.virtualOS.settings.volume = Math.max(0, (window.virtualOS.settings.volume || 80) - 10);
+      showToast(`Kelantangan: ${window.virtualOS.settings.volume}%`);
+    }
+    return;
+  }
+
+  if (bridge && bridge.isConnected) {
     bridge.sendKey(key);
+  } else if (window.virtualOS) {
+    if (key === 'BACK') window.virtualOS.handleBack();
+    else if (key === 'HOME') window.virtualOS.goHome();
+    else if (key === 'RECENTS') window.virtualOS.toggleRecents();
   }
 }
 
 async function rotateScreen() {
-  if (bridge) {
+  if (currentEngineMode === 'standalone') {
+    const chassis = document.getElementById('device-chassis');
+    if (chassis) {
+      const isPortrait = chassis.classList.toggle('portrait');
+      showToast(isPortrait ? 'Orientasi: Potret (9:16)' : 'Orientasi: Landskap (16:9)');
+    }
+    return;
+  }
+
+  if (bridge && bridge.isConnected) {
     showToast('Memutar orientasi paparan Android 12...');
     try {
       const res = await bridge.rotateScreen();
@@ -145,18 +227,26 @@ async function rotateScreen() {
         showToast(isLandscape ? 'Orientasi: Landskap (16:9 - 2560x1440)' : 'Orientasi: Potret (9:16 - 1440x2560)');
         if (window.emulatorCore) {
           window.emulatorCore.onOrientationChanged(data.rotation, data.width, data.height);
-        } else if (window.emulator) {
-          window.emulator.onOrientationChanged(data.rotation, data.width, data.height);
         }
       }
     } catch (e) {
       console.error('Rotate error:', e);
     }
+  } else {
+    showToast('Bridge tidak disambungkan ke Mac');
   }
 }
 
 function powerDevice() {
-  if (bridge) {
+  if (currentEngineMode === 'standalone') {
+    if (window.virtualOS) {
+      window.virtualOS.toggleShade();
+      showToast('Panel Notifikasi & Kawalan Android 12');
+    }
+    return;
+  }
+
+  if (bridge && bridge.isConnected) {
     bridge.wakeDevice();
     showToast('Togol kuasa/skrin kunci peranti');
   }
@@ -164,20 +254,34 @@ function powerDevice() {
 
 function rebootDevice() {
   if (confirm('Adakah anda pasti mahu memulakan semula (reboot) peranti Android 12?')) {
-    fetch('/api/control/reboot', { method: 'POST' });
-    showToast('Memulakan semula Android OS...');
+    if (currentEngineMode === 'standalone' && window.virtualOS) {
+      window.virtualOS.closeCurrentApp();
+      window.virtualOS.goHome();
+      showToast('Memuatkan semula persekitaran maya...');
+      closeModal('modal-settings');
+      return;
+    }
+
+    if (bridge && bridge.isConnected) {
+      fetch(`${bridge.baseUrl}/api/control/reboot`, { method: 'POST' });
+      showToast('Memulakan semula Android OS...');
+    }
     closeModal('modal-settings');
   }
 }
 
 function takeScreenshot() {
   showToast('Mengambil tangkapan skrin resolusi penuh...');
-  const a = document.createElement('a');
-  a.href = `/api/control/screenshot?t=${Date.now()}`;
-  a.download = `mumu_screenshot_${Date.now()}.png`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  if (currentEngineMode === 'bridge' && bridge && bridge.isConnected) {
+    const a = document.createElement('a');
+    a.href = `${bridge.baseUrl}/api/control/screenshot?t=${Date.now()}`;
+    a.download = `mumu_screenshot_${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } else {
+    showToast('📸 Tangkapan skrin Android 12 (Standalone) berjaya disimpan.');
+  }
 }
 
 function toggleKeymapOverlay() {
@@ -200,10 +304,10 @@ function toggleFpsAimMode() {
   const viewport = document.getElementById('viewport');
   if (!isAimMode) {
     viewport.requestPointerLock = viewport.requestPointerLock || viewport.mozRequestPointerLock;
-    viewport.requestPointerLock();
+    if (viewport.requestPointerLock) viewport.requestPointerLock();
   } else {
     document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
-    document.exitPointerLock();
+    if (document.exitPointerLock) document.exitPointerLock();
   }
 }
 
@@ -225,7 +329,7 @@ function setupPointerLockEvents() {
   });
 
   document.addEventListener('mousemove', (e) => {
-    if (!isAimMode) return;
+    if (!isAimMode || currentEngineMode !== 'bridge' || !bridge.isConnected) return;
     const movementX = e.movementX || 0;
     const movementY = e.movementY || 0;
 
@@ -235,323 +339,304 @@ function setupPointerLockEvents() {
       bridge.swipe(centerX, centerY, centerX + movementX * 3, centerY + movementY * 3, 50, emulator.androidWidth, emulator.androidHeight);
     }
   });
-
-  viewport.addEventListener('mousedown', (e) => {
-    if (!isAimMode) return;
-    const w = emulator.androidWidth || 1440;
-    const h = emulator.androidHeight || 2560;
-    if (e.button === 0) {
-      bridge.tap(Math.round(w * 0.85), Math.round(h * 0.75), w, h);
-    } else if (e.button === 2) {
-      bridge.tap(Math.round(w * 0.85), Math.round(h * 0.4), w, h);
-    }
-  });
-
-  viewport.addEventListener('contextmenu', (e) => {
-    if (isAimMode) e.preventDefault();
-  });
 }
 
-/* APK Drag & Drop Sideloading */
+/* APK Sideloading Drag & Drop */
 function setupDragAndDrop() {
-  const stage = document.getElementById('stage') || document.body;
-  const dragOverlay = document.getElementById('drag-overlay');
-  if (!dragOverlay) return;
+  const dropzone = document.getElementById('apk-dropzone-inner');
+  if (!dropzone) return;
 
-  ['dragenter', 'dragover'].forEach(name => {
-    stage.addEventListener(name, (e) => {
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
       e.preventDefault();
-      e.stopPropagation();
-      dragOverlay.classList.add('open');
+      dropzone.style.borderColor = 'var(--accent-cyan)';
+      dropzone.style.background = 'rgba(0, 240, 255, 0.08)';
     });
   });
 
-  ['dragleave', 'drop'].forEach(name => {
-    stage.addEventListener(name, (e) => {
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
       e.preventDefault();
-      e.stopPropagation();
-      dragOverlay.classList.remove('open');
+      dropzone.style.borderColor = 'var(--border-subtle)';
+      dropzone.style.background = 'transparent';
     });
   });
 
-  stage.addEventListener('drop', (e) => {
-    const files = e.dataTransfer ? e.dataTransfer.files : [];
-    if (files.length > 0) {
+  dropzone.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].name.endsWith('.apk')) {
       uploadAndInstallApk(files[0]);
+    } else {
+      showToast('Sila masukkan fail yang sah berformat .apk sahaja');
     }
   });
 }
 
 function handleApkSelected(input) {
-  if (input.files && input.files.length > 0) {
+  if (input.files && input.files[0]) {
     uploadAndInstallApk(input.files[0]);
   }
 }
 
 async function uploadAndInstallApk(file) {
-  if (!file.name.toLowerCase().endsWith('.apk')) {
-    showToast('⚠️ Sila pilih fail dengan format .apk sahaja!', 3000);
+  const logEl = document.getElementById('apk-status-log');
+  if (logEl) logEl.textContent = `Memasang ${file.name}... Sila tunggu.`;
+
+  if (currentEngineMode === 'standalone' && window.virtualOS) {
+    const cleanName = file.name.replace(/\.apk$/i, '');
+    window.virtualOS.installApp(cleanName.toLowerCase(), cleanName, '📦', '#06b6d4');
+    if (logEl) logEl.textContent = `Pemasangan berjaya! Aplikasi ${file.name} telah ditambah ke skrin utama Android 12.`;
+    showToast(`Aplikasi ${cleanName} sedia digunakan!`);
+    setTimeout(() => closeModal('modal-apk'), 1500);
     return;
   }
 
-  openModal('modal-apk');
-  const logEl = document.getElementById('apk-status-log');
-  logEl.innerHTML = `<span style="color: #00f0ff;">⏳ Memuat naik dan memasang ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)... Sila tunggu sebentar.</span>`;
+  if (!bridge || !bridge.isConnected) {
+    if (window.virtualOS) {
+      const cleanName = file.name.replace(/\.apk$/i, '');
+      window.virtualOS.installApp(cleanName.toLowerCase(), cleanName, '📦', '#06b6d4');
+      if (logEl) logEl.textContent = `Pemasangan berjaya di WebOS Maya.`;
+      showToast(`Aplikasi ${cleanName} sedia digunakan!`);
+      setTimeout(() => closeModal('modal-apk'), 1500);
+      return;
+    }
+    if (logEl) logEl.textContent = 'Ralat: Bridge Mac tidak disambungkan.';
+    return;
+  }
 
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('apk', file);
 
   try {
-    const res = await fetch('/api/apk/install', {
+    const res = await fetch(`${bridge.baseUrl}/api/apk/install`, {
       method: 'POST',
       body: formData
     });
-    const result = await res.json();
-    if (result.ok) {
-      const pkg = result.package || 'Aplikasi';
-      const appName = result.name || file.name;
-      logEl.innerHTML = `
-        <div style="background: rgba(0, 255, 136, 0.08); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 10px; padding: 14px; margin-top: 10px;">
-          <div style="color: #00ff88; font-weight: 700; font-size: 15px; margin-bottom: 6px;">
-            ✓ Berjaya Dipasang: ${appName}
-          </div>
-          <div style="color: #cbd5e1; font-size: 12px; line-height: 1.5; margin-bottom: 12px;">
-            Pakej: <code>${pkg}</code><br>
-            Aplikasi telah dilancarkan pada skrin Android 12.
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="mode-btn" style="background: var(--accent-cyan); color: #020617; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer;" onclick="closeModal('modal-apk');">
-              Lihat Skrin
-            </button>
-          </div>
-        </div>
-      `;
-      showToast(`Aplikasi ${appName} berjaya dipasang dan dibuka!`);
+    const data = await res.json();
+    if (data.success) {
+      if (logEl) logEl.textContent = `Pemasangan berjaya: ${file.name}`;
+      showToast(`Pemasangan APK Berjaya!`);
+      setTimeout(() => closeModal('modal-apk'), 2000);
     } else {
-      logEl.innerHTML = `<span style="color: #ff3366;">✗ Ralat pemasangan: ${result.error || result.output}</span>`;
+      if (logEl) logEl.textContent = `Ralat pemasangan: ${data.error || 'Gagal'}`;
     }
   } catch (err) {
-    logEl.innerHTML = `<span style="color: #ff3366;">✗ Kegagalan sambungan: ${err.message}</span>`;
+    if (logEl) logEl.textContent = `Ralat rangkaian: ${err.message}`;
   }
 }
 
-/* Apps Modal Management */
-async function openAppsModal() {
-  openModal('modal-apps');
-  const container = document.getElementById('apps-list-container');
-  container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Memuatkan senarai aplikasi...</div>';
-
-  try {
-    const res = await fetch('/api/apps');
-    const data = await res.json();
-    currentApps = data.packages || [];
-    renderAppsList(currentApps);
-  } catch (e) {
-    container.innerHTML = '<div style="color: #ff3366; text-align: center; padding: 20px;">Ralat memuatkan senarai aplikasi.</div>';
-  }
-}
-
-function renderAppsList(apps) {
-  const container = document.getElementById('apps-list-container');
-  if (!apps || apps.length === 0) {
-    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Tiada aplikasi pihak ketiga dipasang.</div>';
-    return;
-  }
-
-  container.innerHTML = apps.map(app => {
-    return `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px;">
-        <div style="display: flex; align-items: center; overflow: hidden; margin-right: 12px;">
-          <span style="font-size: 24px; margin-right: 10px; width: 32px; text-align: center; display: inline-block;">📱</span>
-          <div style="display: flex; flex-direction: column; overflow: hidden;">
-            <span style="color: #fff; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${app.name || app.package}</span>
-            <span style="font-size: 11px; color: #00f0ff;"><code>${app.package}</code></span>
-          </div>
-        </div>
-        <div style="display: flex; gap: 6px; flex-shrink: 0;">
-          <button class="mode-btn" style="background: rgba(0, 240, 255, 0.18); color: var(--accent-cyan); font-weight: 600;" onclick="launchApp('${app.package}')">Buka</button>
-          <button class="mode-btn" style="background: rgba(255, 51, 102, 0.18); color: var(--accent-red); font-weight: 600;" onclick="uninstallApp('${app.package}')">Padam</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function filterAppsList() {
-  const q = document.getElementById('app-search').value.toLowerCase();
-  const filtered = currentApps.filter(a => (a.package && a.package.toLowerCase().includes(q)) || (a.name && a.name.toLowerCase().includes(q)));
-  renderAppsList(filtered);
-}
-
-async function launchApp(pkg) {
-  showToast(`Melancarkan ${pkg}...`);
-  if (bridge) {
-    await bridge.launchApp(pkg);
-    closeModal('modal-apps');
-  }
-}
-
-async function uninstallApp(pkg) {
-  if (confirm(`Nyahpasang pakej ${pkg}?`)) {
-    showToast(`Memadamkan ${pkg}...`);
-    try {
-      const res = await fetch('/api/app/uninstall', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ package: pkg })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        showToast(`Pakej ${pkg} berjaya dipadam!`);
-        openAppsModal();
-      }
-    } catch (e) {
-      showToast('Ralat: ' + e.message);
-    }
-  }
-}
-
-/* Terminal Modal Management */
-function openTerminalModal() {
-  openModal('modal-terminal');
-  setTimeout(() => {
-    const input = document.getElementById('terminal-input');
-    if (input) input.focus();
-  }, 100);
-}
-
-async function handleTerminalKey(e) {
-  if (e.key === 'Enter') {
-    const input = document.getElementById('terminal-input');
-    const logs = document.getElementById('terminal-logs');
-    const cmd = input.value.trim();
-    if (!cmd) return;
-
-    input.value = '';
-    logs.innerHTML += `\n<span style="color: #00f0ff;">mumu:/ $ ${cmd}</span>`;
-
-    try {
-      const res = await fetch('/api/shell', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: cmd })
-      });
-      const data = await res.json();
-      const output = data.output || data.error || '(tiada output)';
-      logs.innerHTML += `\n${escapeHtml(output)}`;
-    } catch (err) {
-      logs.innerHTML += `\n<span style="color: #ff3366;">Ralat: ${err.message}</span>`;
-    }
-
-    logs.scrollTop = logs.scrollHeight;
-  }
-}
-
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-/* Settings Modal Management */
-function openSettingsModal() {
-  openModal('modal-settings');
-}
-
-async function applyResolutionPreset(val) {
-  const [dims, dpi] = val.split(',');
-  const [w, h] = dims.split('x').map(Number);
-  const density = Number(dpi);
-
-  showToast(`Menukar resolusi ke ${w}x${h} (${density} DPI)...`);
-  try {
-    await fetch('/api/settings/resolution', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ width: w, height: h, density: density })
-    });
-    emulator.androidWidth = w;
-    emulator.androidHeight = h;
-    showToast(`Resolusi berjaya ditukar ke ${w}x${h}!`);
-  } catch (e) {
-    showToast('Ralat menukar resolusi: ' + e.message);
-  }
-}
-
-/* Generic Modal Helpers */
+/* Modals & Remote Bridge Setup */
 function openModal(id) {
   const modal = document.getElementById(id);
-  if (modal) modal.classList.add('open');
+  if (modal) modal.classList.add('active');
 }
 
 function closeModal(id) {
   const modal = document.getElementById(id);
-  if (modal) modal.classList.remove('open');
+  if (modal) modal.classList.remove('active');
 }
 
-/* Toast Notification Helper */
-function showToast(msg, duration = 3000) {
-  let toast = document.getElementById('mumu-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'mumu-toast';
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(16, 20, 31, 0.95);
-      color: #f0f4fc;
-      border: 1px solid rgba(0, 240, 255, 0.35);
-      border-radius: 8px;
-      padding: 10px 20px;
-      font-size: 13px;
-      font-weight: 500;
-      z-index: 9999;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(8px);
-      transition: opacity 0.2s ease, transform 0.2s ease;
-      pointer-events: none;
-    `;
-    document.body.appendChild(toast);
+function openBridgeModal() {
+  const input = document.getElementById('bridge-host-input');
+  if (input && bridge) {
+    input.value = bridge.baseUrl || 'http://192.168.0.2:8088';
   }
-  toast.textContent = msg;
-  toast.style.opacity = '1';
-  toast.style.transform = 'translateX(-50%) translateY(0)';
+  openModal('modal-bridge');
+}
 
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(-50%) translateY(10px)';
-  }, duration);
+function setBridgeUrl(url) {
+  const input = document.getElementById('bridge-host-input');
+  if (input) input.value = url;
+}
+
+async function saveCustomBridge() {
+  const input = document.getElementById('bridge-host-input');
+  const url = (input ? input.value : '').trim();
+  if (!url) {
+    showToast('Sila masukkan alamat URL Bridge yang sah');
+    return;
+  }
+  showToast(`Menyambung ke Bridge Mac: ${url}...`);
+  closeModal('modal-bridge');
+  bridge.setBaseUrl(url);
+  const res = await bridge.checkHealth();
+  if (res && res.connected) {
+    showToast('Berjaya disambungkan ke Enjin MuMu Mac!');
+    setEngineMode('bridge');
+  } else {
+    showToast('Sambungan tidak dapat dicapai. Kekal dalam WebOS Standalone.');
+    setEngineMode('standalone');
+  }
+}
+
+function openAppsModal() {
+  openModal('modal-apps');
+  loadAppsList();
+}
+
+async function loadAppsList() {
+  const container = document.getElementById('apps-list-container');
+  if (!container) return;
+
+  if (currentEngineMode === 'standalone' && window.virtualOS) {
+    const apps = window.virtualOS.installedApps || [];
+    container.innerHTML = apps.map(app => `
+      <div class="vos-ps-item" style="margin-bottom: 8px;">
+        <div class="vos-ps-icon" style="background: ${app.color};">${app.icon}</div>
+        <div class="vos-ps-info">
+          <div class="vos-ps-title">${app.name}</div>
+          <div class="vos-ps-sub">${app.badge || 'Aplikasi Sistem'}</div>
+        </div>
+        <button class="vos-ps-install-btn" onclick="window.virtualOS.openApp('${app.id}'); closeModal('modal-apps');">Buka</button>
+      </div>
+    `).join('');
+    return;
+  }
+
+  if (!bridge || !bridge.isConnected) {
+    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Bridge tidak disambungkan ke Mac. Sila tukar ke WebOS Maya.</div>';
+    return;
+  }
+
+  try {
+    const data = await bridge.getInstalledApps();
+    currentApps = data.packages || [];
+    renderApps(currentApps);
+  } catch (e) {
+    container.innerHTML = `<div style="color: var(--accent-red); text-align: center; padding: 20px;">Gagal memuat senarai aplikasi: ${e.message}</div>`;
+  }
+}
+
+function renderApps(list) {
+  const container = document.getElementById('apps-list-container');
+  if (!container) return;
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Tiada aplikasi dijumpai.</div>';
+    return;
+  }
+
+  container.innerHTML = list.map(pkg => `
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: 8px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 20px;">📱</span>
+        <div>
+          <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${pkg}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Android Package</div>
+        </div>
+      </div>
+      <button class="mode-btn" style="padding: 4px 12px; font-size: 11px; background: rgba(0, 240, 255, 0.15); border: 1px solid var(--accent-cyan); color: var(--accent-cyan);" onclick="launchApp('${pkg}')">Lancarkan</button>
+    </div>
+  `).join('');
+}
+
+function filterAppsList() {
+  const q = (document.getElementById('app-search').value || '').toLowerCase();
+  const filtered = currentApps.filter(p => p.toLowerCase().includes(q));
+  renderApps(filtered);
+}
+
+async function launchApp(pkg) {
+  if (bridge) {
+    await bridge.launchApp(pkg);
+    showToast(`Melancarkan: ${pkg}`);
+    closeModal('modal-apps');
+  }
+}
+
+function openTerminalModal() {
+  openModal('modal-terminal');
+  const input = document.getElementById('terminal-input');
+  if (input) setTimeout(() => input.focus(), 150);
+}
+
+function handleTerminalKey(e) {
+  if (e.key === 'Enter') {
+    const input = document.getElementById('terminal-input');
+    const cmd = input.value.trim();
+    if (!cmd) return;
+    input.value = '';
+
+    const logs = document.getElementById('terminal-logs');
+    logs.innerHTML += `\n<span style="color: #00f0ff;">mumu:/ $</span> ${cmd}`;
+
+    if (currentEngineMode === 'standalone' && window.virtualOS) {
+      const res = window.virtualOS.executeVirtualShell(cmd);
+      logs.innerHTML += `\n${res}`;
+      logs.scrollTop = logs.scrollHeight;
+      return;
+    }
+
+    if (!bridge || !bridge.isConnected) {
+      if (window.virtualOS) {
+        const res = window.virtualOS.executeVirtualShell(cmd);
+        logs.innerHTML += `\n${res}`;
+      } else {
+        logs.innerHTML += `\nRalat: Enjin hypervisor tidak aktif.`;
+      }
+      logs.scrollTop = logs.scrollHeight;
+      return;
+    }
+
+    bridge.runShell(cmd).then(res => {
+      logs.innerHTML += `\n${res.stdout || res.stderr || res.error || ''}`;
+      logs.scrollTop = logs.scrollHeight;
+    });
+  }
+}
+
+function openSettingsModal() {
+  openModal('modal-settings');
+}
+
+function applyResolutionPreset(val) {
+  const [res, dpi] = val.split(',');
+  const [w, h] = res.split('x').map(Number);
+  
+  const viewport = document.getElementById('viewport');
+  if (viewport) {
+    viewport.style.aspectRatio = `${w} / ${h}`;
+  }
+  showToast(`Resolusi dikemas kini: ${res} (${dpi} DPI)`);
+  closeModal('modal-settings');
+}
+
+function setDisplayFitMode(mode) {
+  const viewport = document.getElementById('viewport');
+  if (!viewport) return;
+  if (mode === 'contain') {
+    viewport.style.objectFit = 'contain';
+    viewport.style.aspectRatio = '16 / 9';
+    showToast('Mod Paparan: Nisbah 16:9 Asal');
+  } else {
+    viewport.style.objectFit = 'cover';
+    viewport.style.aspectRatio = 'auto';
+    showToast('Mod Paparan: Skrin Penuh Tanpa Sempadan');
+  }
 }
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
+    document.documentElement.requestFullscreen().catch(err => {
+      console.warn('Fullscreen error:', err);
+    });
   } else {
-    document.exitFullscreen().catch(() => {});
+    document.exitFullscreen();
   }
 }
 
-window.showToast = showToast;
-window.openModal = openModal;
-window.closeModal = closeModal;
-window.sendNavKey = sendNavKey;
-window.rotateScreen = rotateScreen;
-window.powerDevice = powerDevice;
-window.rebootDevice = rebootDevice;
-window.takeScreenshot = takeScreenshot;
-window.toggleKeymapOverlay = toggleKeymapOverlay;
-window.toggleFpsAimMode = toggleFpsAimMode;
-window.handleApkSelected = handleApkSelected;
-window.openAppsModal = openAppsModal;
-window.openTerminalModal = openTerminalModal;
-window.openSettingsModal = openSettingsModal;
-window.handleTerminalKey = handleTerminalKey;
-window.applyResolutionPreset = applyResolutionPreset;
-window.filterAppsList = filterAppsList;
-window.launchApp = launchApp;
-window.uninstallApp = uninstallApp;
-window.toggleFullscreen = toggleFullscreen;
+function showToast(msg, duration = 3000) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}

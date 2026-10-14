@@ -29,6 +29,10 @@
       </div>
 
       <div class="mumu-top-actions">
+        <button class="engine-badge-btn" id="mode-switcher-btn" onclick="toggleEngineMode()" title="Tukar antara Enjin WebOS Maya & Enjin MuMu Mac Tempatan">⚡ WebOS Standalone</button>
+        <button class="top-tool-btn" id="btn-bridge-connect" title="Sambung ke Mac Native Bridge" onclick="openBridgeModal()">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm18 12H2v2h20v-2zM6 8v6h12V8H6z"/></svg>
+        </button>
         <div class="stat-badge" id="stat-fps">60 FPS</div>
         <button class="top-tool-btn" title="Pengurus Aplikasi" onclick="openAppsModal()">
           <svg viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
@@ -63,8 +67,12 @@
 
           <!-- Screen Viewport Full Screen -->
           <div class="screen-viewport" id="viewport">
-            <canvas id="mumu-canvas"></canvas>
-            <img id="mumu-stream-img" alt="MuMu Live Stream" src="">
+            <!-- Standalone In-Browser Virtual Android OS (Runs on ANY Mobile/Tablet/PC Browser) -->
+            <div id="virtual-android-container" class="virtual-android-container active"></div>
+
+            <!-- Native MuMu Hardware Stream (Active when connected to Mac Bridge) -->
+            <canvas id="mumu-canvas" style="display: none;"></canvas>
+            <img id="mumu-stream-img" alt="MuMu Live Stream" src="" style="display: none;">
             <canvas id="keymap-overlay"></canvas>
 
             <!-- Drag & Drop Overlay Feedback -->
@@ -279,11 +287,38 @@ Type commands like 'getprop', 'top -n 1', 'pm list packages -3', 'dumpsys batter
       </div>
     </div>
 
+    <!-- Modal: Sambung ke Mac Bridge (Remote / Local) -->
+    <div class="modal-overlay" id="modal-bridge">
+      <div class="modal-window" style="max-width: 480px;">
+        <div class="modal-header">
+          <h3>
+            <svg style="width: 20px; height: 20px; fill: var(--accent-cyan);" viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm18 12H2v2h20v-2zM6 8v6h12V8H6z"/></svg>
+            Sambungan Enjin Mac MuMu (Remote Bridge)
+          </h3>
+          <button class="modal-close-btn" onclick="closeModal('modal-bridge')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+            Sambungkan pelayar telefon atau tablet anda ke MacBook anda secara wayarles untuk penstriman terus 1080p 60 FPS ARM64 Apple Silicon.
+          </p>
+          <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+            <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Alamat URL MuMu Daemon (cth: IP Wi-Fi Mac anda):</label>
+            <input type="text" id="bridge-host-input" class="setting-input" value="http://192.168.0.2:8088" style="width: 100%; font-family: var(--font-mono); font-size: 13px;">
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="mode-btn" style="background: rgba(255, 255, 255, 0.08); color: #cbd5e1;" onclick="setBridgeUrl('http://localhost:8088')">Mac Localhost</button>
+            <button class="mode-btn" style="background: rgba(0, 240, 255, 0.15); border: 1px solid var(--accent-cyan); color: var(--accent-cyan);" onclick="saveCustomBridge()">Sambung Enjin &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Notification Toast Container -->
     <div class="toast-container" id="toast-container"></div>
   </div>
 
   <script src="js/bridge-client.js"></script>
+  <script src="js/virtual-android.js"></script>
   <script src="js/emulator-core.js"></script>
   <script src="js/keymapper.js"></script>
   <script src="js/app.js"></script>

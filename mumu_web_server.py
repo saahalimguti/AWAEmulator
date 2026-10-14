@@ -234,13 +234,11 @@ def grab_single_frame():
                 # Correct vertical orientation (-1) so image is right-side up
                 img = Image.frombytes('RGB', (w, h), raw, 'raw', 'BGRX', bpr, -1)
                 
-                # High quality smooth upscale to eliminate 'pecah2' pixelation
-                target_w = 1280
-                target_h = int(target_w * (h / w)) if w > 0 else 720
-                img = img.resize((target_w, target_h), Image.Resampling.BILINEAR)
-                
+                # Native full HD capture directly from hardware surface
+                state.width = w
+                state.height = h
                 bio = io.BytesIO()
-                img.save(bio, format='JPEG', quality=84)
+                img.save(bio, format='JPEG', quality=82)
                 jpeg_bytes = bio.getvalue()
                 
                 with frame_condition:
@@ -519,6 +517,10 @@ class MuMuHandler(SimpleHTTPRequestHandler):
                     self.wfile.write(header)
                     self.wfile.write(frame)
                     self.wfile.write(b"\r\n")
+                    try:
+                        self.wfile.flush()
+                    except Exception:
+                        break
         except (BrokenPipeError, ConnectionResetError):
             pass
         finally:

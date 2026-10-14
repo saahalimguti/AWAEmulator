@@ -1,6 +1,6 @@
 /**
  * MuMuPlayer Pro - Mimic Protocol Client
- * Handles high-speed communication with the local ADB Bridge Daemon.
+ * Handles high-speed communication with the local or remote ADB Bridge Daemon.
  */
 
 class MuMuBridgeClient {
@@ -10,11 +10,11 @@ class MuMuBridgeClient {
       const customBridge = urlParams.get('bridge') || localStorage.getItem('mumu_bridge_url');
       if (customBridge) {
         baseUrl = customBridge;
-      } else if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        // When deployed on Vercel or external host, auto-target local Mac daemon
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         baseUrl = 'http://localhost:8088';
       } else {
-        baseUrl = '';
+        // On mobile or Vercel, check localStorage or empty string (non-blocking)
+        baseUrl = localStorage.getItem('mumu_bridge_url') || '';
       }
     }
     this.baseUrl = baseUrl.replace(/\/$/, '');
@@ -22,8 +22,14 @@ class MuMuBridgeClient {
     this.deviceInfo = null;
     this.latencyMs = 0;
     this.statusListeners = [];
-    this.streamMode = 'canvas'; // 'canvas' or 'mjpeg'
+    this.streamMode = 'mjpeg';
     this.pollInterval = null;
+  }
+
+  setBaseUrl(newUrl) {
+    this.baseUrl = (newUrl || '').replace(/\/$/, '');
+    localStorage.setItem('mumu_bridge_url', this.baseUrl);
+    return this.checkHealth();
   }
 
   onStatusChange(fn) {
@@ -35,13 +41,27 @@ class MuMuBridgeClient {
   }
 
   async checkHealth() {
+    if (!this.baseUrl) {
+      this.isConnected = false;
+      this.notifyStatus({ connected: false, reason: 'no_bridge_url' });
+      return { connected: false };
+    }
+
     const t0 = performance.now();
     try {
-      const res = await fetch(`${this.baseUrl}/api/status`, { cache: 'no-store' });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
+      
+      const res = await fetch(`${this.baseUrl}/api/status`, { 
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       this.latencyMs = Math.round(performance.now() - t0);
       if (res.ok) {
         const data = await res.json();
-        this.isConnected = data.connected;
+        this.isConnected = Boolean(data.connected);
         this.deviceInfo = data;
         this.notifyStatus(data);
         return data;
@@ -53,13 +73,19 @@ class MuMuBridgeClient {
     return { connected: false };
   }
 
-  startHeartbeat(intervalMs = 2000) {
+  startHeartbeat(intervalMs = 2500) {
     this.checkHealth();
     if (this.pollInterval) clearInterval(this.pollInterval);
     this.pollInterval = setInterval(() => this.checkHealth(), intervalMs);
   }
 
+  stopHeartbeat() {
+    if (this.pollInterval) clearInterval(this.pollInterval);
+    this.pollInterval = null;
+  }
+
   async tap(x, y, clientW, clientH) {
+    if (!this.baseUrl || !this.isConnected) return;
     try {
       return await fetch(`${this.baseUrl}/api/input/tap`, {
         method: 'POST',
@@ -72,6 +98,7 @@ class MuMuBridgeClient {
   }
 
   async swipe(x1, y1, x2, y2, duration = 250, clientW, clientH) {
+    if (!this.baseUrl || !this.isConnected) return;
     try {
       return await fetch(`${this.baseUrl}/api/input/swipe`, {
         method: 'POST',
@@ -84,6 +111,7 @@ class MuMuBridgeClient {
   }
 
   async sendKey(key) {
+    if (!this.baseUrl || !this.isConnected) return;
     try {
       return await fetch(`${this.baseUrl}/api/input/key`, {
         method: 'POST',
@@ -96,6 +124,7 @@ class MuMuBridgeClient {
   }
 
   async sendText(text) {
+    if (!this.baseUrl || !this.isConnected) return;
     try {
       return await fetch(`${this.baseUrl}/api/input/text`, {
         method: 'POST',
@@ -108,6 +137,9 @@ class MuMuBridgeClient {
   }
 
   async runShell(command) {
+    if (!this.baseUrl || !this.isConnected) {
+      return { error: 'Bridge tidak disambungkan' };
+    }
     try {
       const res = await fetch(`${this.baseUrl}/api/shell`, {
         method: 'POST',
@@ -121,6 +153,7 @@ class MuMuBridgeClient {
   }
 
   async getInstalledApps() {
+    if (!this.baseUrl || !this.isConnected) return { packages: [] };
     try {
       const res = await fetch(`${this.baseUrl}/api/apps`);
       if (res.ok) return await res.json();
@@ -131,6 +164,7 @@ class MuMuBridgeClient {
   }
 
   async launchApp(pkg) {
+    if (!this.baseUrl || !this.isConnected) return;
     return await fetch(`${this.baseUrl}/api/app/launch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -139,6 +173,7 @@ class MuMuBridgeClient {
   }
 
   async rotateScreen() {
+    if (!this.baseUrl || !this.isConnected) return;
     return await fetch(`${this.baseUrl}/api/control/rotate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -147,6 +182,7 @@ class MuMuBridgeClient {
   }
 
   async wakeDevice() {
+    if (!this.baseUrl || !this.isConnected) return;
     return await fetch(`${this.baseUrl}/api/control/wake`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
